@@ -31,7 +31,7 @@ void Cpu::dump_status() {
           ctx_.flag.a, ctx_.flag.p, ctx_.flag.c);
 }
 
-ExitStatus Cpu::run() {
+Cpu::ExitStatus Cpu::run() {
   for (;;) {
     byte b = fetch();
     switch (b) {
