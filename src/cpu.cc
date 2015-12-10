@@ -71,8 +71,7 @@ Cpu::ExitStatus Cpu::run() {
             is_8bit = true;
           case 5:   // AX Iv
             dst = &ctx_.a.l;
-            src = mem_.get<void>(ctx_.seg.cs, ctx_.ip);
-            ctx_.ip += is_8bit ? 1 : 2;
+            src = is_8bit ? to_ptr(fetch()) : to_ptr(fetchw());
             break;
         }
 

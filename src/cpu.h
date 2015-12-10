@@ -110,14 +110,14 @@ private:
     bool lock:         1;
   } pfx_;
 
-  byte fetch() {
-    byte tmp = *mem_.get<byte>(ctx_.seg.cs, ctx_.ip);
+  byte& fetch() {
+    byte &tmp = *mem_.get<byte>(ctx_.seg.cs, ctx_.ip);
     ctx_.ip += sizeof(byte);
     return tmp;
   }
 
-  word fetchw() {
-    word tmp = *mem_.get<word>(ctx_.seg.cs, ctx_.ip);
+  word& fetchw() {
+    word &tmp = *mem_.get<word>(ctx_.seg.cs, ctx_.ip);
     ctx_.ip += sizeof(word);
     return tmp;
   }

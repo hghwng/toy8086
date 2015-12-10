@@ -15,4 +15,9 @@ inline byte &to_byte(T *p) {
   return *reinterpret_cast<byte *>(p);
 }
 
+template<typename T>
+inline void *to_ptr(T &p) {
+  return &p;
+}
+
 #endif
