@@ -18,11 +18,27 @@ inline void Cpu::opw_add(word &dst, word &src) {
   dst = sum;
 }
 
+inline void Cpu::opb_sub(byte &dst, byte &src) {
+  byte result = dst - src;
+  ctx_.flag.c = result > dst;
+  //ctx_.flag.o =
+  ctx_.flag.set_szp(result);
+  dst = result;
+}
+
+inline void Cpu::opw_sub(word &dst, word &src) {
+  word result = dst - src;
+  ctx_.flag.c = result > dst;
+  //ctx_.flag.o =
+  ctx_.flag.set_szp(result);
+  dst = result;
+}
+
 void Cpu::dump_status() {
   fprintf(stderr, "AX = %04X CX = %04X DX = %04X BX = %04X\n",
           ctx_.a.x, ctx_.b.x, ctx_.c.x, ctx_.d.x);
-  fprintf(stderr, "BP = %04X SP = %04X SI = %04X DI = %04X IP = %04X\n",
-          ctx_.bp, ctx_.sp, ctx_.si, ctx_.di, ctx_.ip);
+  fprintf(stderr, "SP = %04X BP = %04X SI = %04X DI = %04X IP = %04X\n",
+          ctx_.sp, ctx_.bp, ctx_.si, ctx_.di, ctx_.ip);
   fprintf(stderr, "CS = %04X SS = %04X DS = %04X ES = %04X FS = %04X GS = %04X\n",
           ctx_.seg.cs, ctx_.seg.ss, ctx_.seg.ds,
           ctx_.seg.es, ctx_.seg.fs, ctx_.seg.gs);
@@ -51,7 +67,8 @@ Cpu::ExitStatus Cpu::run() {
       case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c: case 0x0d:   // or
       case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d:   // sbb
       case 0x28: case 0x29: case 0x2a: case 0x2b: case 0x2c: case 0x2d:   // sub
-      case 0x38: case 0x39: case 0x3a: case 0x3b: case 0x3c: case 0x3d: { // cmp
+      case 0x38: case 0x39: case 0x3a: case 0x3b: case 0x3c: case 0x3d:   // cmp
+      case 0x88: case 0x89: case 0x8a: case 0x8b: { // mov (partial)
         void *src, *dst;
         bool is_8bit = false;
         switch (b & 7) {
@@ -73,6 +90,9 @@ Cpu::ExitStatus Cpu::run() {
             dst = &ctx_.a.l;
             src = is_8bit ? to_ptr(fetch()) : to_ptr(fetchw());
             break;
+
+          default:
+            fprintf(stderr, "Invalid instruction %x", b);
         }
 
         switch (b >> 3) {
@@ -83,7 +103,7 @@ Cpu::ExitStatus Cpu::run() {
             } else {
               opw_add(to_word(dst), to_word(src));
             }
-
+            break;
           // adc
           case 1:
 
@@ -101,13 +121,85 @@ Cpu::ExitStatus Cpu::run() {
 
           // sub
           case 6:
-
+            if (is_8bit) {
+              opb_sub(to_byte(dst), to_byte(src));
+            } else {
+              opw_sub(to_word(dst), to_word(src));
+            }
+            break;
           // cmp
           case 7:
             break;
+
+          // mov (partial)
+          case 17:
+            if (is_8bit) {
+              to_byte(dst) = to_byte(src);
+            } else {
+              to_word(dst) = to_word(src);
+            }
+            break;
+
+          default:
+            fprintf(stderr, "Invalid instruction %x", b);
         }
         goto next_instr;
       } //  case of some opcode from 0x00 to 0x3d
+
+      case 0x90: // NOP
+        continue;
+
+      case 0x40: case 0x41: case 0x42: case 0x43: // INC
+      case 0x44: case 0x45: case 0x46: case 0x47:
+      case 0x48: case 0x49: case 0x4a: case 0x4b: // DEC
+      case 0x4c: case 0x4d: case 0x4e: case 0x4f:
+      case 0x50: case 0x51: case 0x52: case 0x53: // PUSH
+      case 0x54: case 0x55: case 0x56: case 0x57:
+      case 0x58: case 0x59: case 0x5a: case 0x5b: // POP
+      case 0x5c: case 0x5d: case 0x5e: case 0x5f:
+      /*90=NOP*/ case 0x91: case 0x92: case 0x93: // XCHG
+      case 0x94: case 0x95: case 0x96: case 0x97:
+      case 0xb8: case 0xb9: case 0xba: case 0xbb: // MOV
+      case 0xbc: case 0xbd: case 0xbe: case 0xbf: {
+        word &reg = this->ctx_.reg_all[b & 7];
+        switch (b & 0xf8) {
+          case 0x40: // INC
+            fprintf(stderr, "INC [reg] not implemented.");
+            break;
+          case 0x48: // DEC
+            fprintf(stderr, "DEC [reg] not implemented.");
+            break;
+          case 0x50: // PUSH
+            fprintf(stderr, "PUSH [reg] not implemented.");
+            break;
+          case 0x58: // POP
+            fprintf(stderr, "POP [reg] not implemented.");
+            break;
+          case 0x90: // XCHG
+            fprintf(stderr, "XCHG [reg], AX not implemented.");
+            break;
+          case 0xb8: { // MOV
+            reg = fetchw();
+            break;
+          }
+        }
+        goto next_instr;
+      } // 16-bit register operations (INC, DEC, PUSH, POP, MOV)
+
+      case 0xb0: case 0xb1: case 0xb2: case 0xb3: // MOV [reg], Ib
+      case 0xb4: case 0xb5: case 0xb6: case 0xb7: {
+        byte &reg = this->ctx_.reg_gen[b & 3].v[(b & 4) / 4];
+        reg = fetch();
+        goto next_instr;
+      } // 8-bit MOV-to-register operations
+
+      case 0xcc:
+        handle_interrupt(3);
+        continue;
+
+      case 0xcd:
+        handle_interrupt(fetch());
+        continue;
 
       case 0xf4:
         return kExitHalt;
@@ -131,10 +223,10 @@ void Cpu::decode_modrm(void **rm, void **reg) {
   byte regbits = (b >> 3) & 7;
   byte rmbits = b & 7;
 
-  *reg = &ctx_.reg_gen[regbits >> 1].v[regbits & 1];
+  *reg = &this->ctx_.reg_gen[regbits & 3].v[regbits >> 2];
 
   if (modbits == 3) {
-    *rm = &ctx_.reg_gen[rmbits >> 1].v[rmbits & 1];
+    *rm = &this->ctx_.reg_gen[rmbits & 3].v[rmbits >> 2];
     return;
   }
 
@@ -163,5 +255,21 @@ void Cpu::decode_modrm(void **rm, void **reg) {
     *rm = mem_.get<void>(ctx_.seg.get(), base + fetch());
   } else if (modbits == 2) {
     *rm = mem_.get<void>(ctx_.seg.get(), base + fetchw());
+  }
+}
+
+void Cpu::handle_interrupt(byte interrupt) {
+  switch (interrupt) {
+    case 0x21: {  // DOS interrupt
+      switch (this->ctx_.a.h) {
+        case 0x01:  // get char from stdin
+          this->ctx_.a.l = (char) getonechar();
+          break;
+        case 0x02:  // print char to stdout
+          printf("%c", this->ctx_.d.l);
+          this->ctx_.a.l = this->ctx_.d.l;  // side effect
+          break;
+      }
+    }
   }
 }

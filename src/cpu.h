@@ -79,11 +79,24 @@ struct Context {
 
   union {
     struct {
-      GeneralRegister a, c, d, b;
+      union {
+        struct {
+          GeneralRegister a, c, d, b;
+        };
+        GeneralRegister reg_gen[4];
+      };
+
+      union {
+        struct {
+          word sp, bp, si, di;
+        };
+        word reg_spc[4];
+      };
     };
-    GeneralRegister reg_gen[4];
+    word reg_all[8];
   };
-  word bp, si, di, sp, ip;
+
+  word ip;
 
   Segment seg;
   Flag flag;
@@ -126,4 +139,7 @@ private:
 
   void opb_add(byte &dst, byte &src);
   void opw_add(word &dst, word &src);
+  void opb_sub(byte &dst, byte &src);
+  void opw_sub(word &dst, word &src);
+  void handle_interrupt(byte interrupt);
 };
