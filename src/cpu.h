@@ -17,13 +17,13 @@ struct Flag {
   void set_szp(byte v) {
     z = (v == 0);
     s = (v & 0x80);
-    p = __builtin_popcount(v);
+    p = __builtin_popcount(v) & 1;
   }
 
   void set_szp(word v) {
     z = (v == 0);
     s = (v & 0x8000);
-    p = __builtin_popcount(static_cast<byte>(v));
+    p = __builtin_popcount(static_cast<byte>(v)) & 1;
   }
 
 };  // Flag
