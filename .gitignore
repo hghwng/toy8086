@@ -1,3 +1,4 @@
 *.swp
 build/
 test/com
+.idea/
