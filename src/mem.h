@@ -21,7 +21,7 @@ public:
   }
 
   template<typename T>
-  T *get(word seg, word offset) {
-    return (T *)(base_ + ((seg + offset) & mask_));
+  T *get(size_t seg, size_t offset) {
+    return (T *)(base_ + (((seg << 4) + offset) & mask_));
   }
 };
