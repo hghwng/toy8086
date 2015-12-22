@@ -18,6 +18,16 @@ inline byte &to_byte(T *p) {
 }
 
 template<typename T>
+inline word &to_word(T &p) {
+  return reinterpret_cast<word &>(p);
+}
+
+template<typename T>
+inline byte &to_byte(T &p) {
+  return reinterpret_cast<byte &>(p);
+}
+
+template<typename T>
 inline void *to_ptr(T &p) {
   return &p;
 }

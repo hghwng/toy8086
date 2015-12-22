@@ -135,11 +135,27 @@ private:
     return tmp;
   }
 
-  void decode_modrm(void **src, void **dst);
+  void decode_rm(byte b, void **rm);
+  void decode_mod(byte b, void **mod);
 
   void opb_add(byte &dst, byte &src);
   void opw_add(word &dst, word &src);
+  void opb_adc(byte &dst, byte &src);
+  void opw_adc(word &dst, word &src);
   void opb_sub(byte &dst, byte &src);
   void opw_sub(word &dst, word &src);
+  void opb_sbb(byte &dst, byte &src);
+  void opw_sbb(word &dst, word &src);
+  void opb_and(byte &dst, byte &src);
+  void opw_and(word &dst, word &src);
+  void opb_or(byte &dst, byte &src);
+  void opw_or(word &dst, word &src);
+  void opb_xor(byte &dst, byte &src);
+  void opw_xor(word &dst, word &src);
+  void opb_cmp(byte  dst, byte  src);
+  void opw_cmp(word  dst, word  src);
+  void opw_push(word data);
+  void opw_pop(word &data);
+  void opw_xchg(word &dst, word &src);
   void handle_interrupt(byte interrupt);
 };
