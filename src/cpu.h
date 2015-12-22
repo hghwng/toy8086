@@ -157,5 +157,8 @@ private:
   void opw_push(word data);
   void opw_pop(word &data);
   void opw_xchg(word &dst, word &src);
+  template<typename D, typename S> void op_in(D &dst, S src);
+  template<typename D, typename S> void op_out(D dst, S &src);
+
   void handle_interrupt(byte interrupt);
 };

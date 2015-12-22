@@ -132,6 +132,14 @@ inline void Cpu::opw_xchg(word &dst, word &src) {
   dst = tmp;
 }
 
+template<typename D, typename S> void Cpu::op_in(D &dst, S src) {
+
+};
+
+template<typename D, typename S> void Cpu::op_out(D dst, S &src) {
+
+};
+
 void Cpu::dump_status() {
   fprintf(stderr, "AX = %04X CX = %04X DX = %04X BX = %04X\n",
           ctx_.a.x, ctx_.b.x, ctx_.c.x, ctx_.d.x);
@@ -448,9 +456,33 @@ Cpu::ExitStatus Cpu::run() {
       case 0xcc:    // int 3
         handle_interrupt(3);
         goto next_instr;
-
       case 0xcd:    // int
         handle_interrupt(fetch());
+        goto next_instr;
+
+      case 0xe4:    // in AL, Ib
+        op_in(this->ctx_.a.l, fetch());
+        goto next_instr;
+      case 0xe5:    // in AX, Ib
+        op_in(this->ctx_.a.x, fetch());
+        goto next_instr;
+      case 0xe6:    // out AL, Ib
+        op_out(fetch(), this->ctx_.a.l);
+        goto next_instr;
+      case 0xe7:    // out AX, Ib
+        op_out(fetch(), this->ctx_.a.x);
+        goto next_instr;
+      case 0xec:    // in AL, DX
+        op_in(this->ctx_.a.l, this->ctx_.d.x);
+        goto next_instr;
+      case 0xed:    // in AX, DX
+        op_in(this->ctx_.a.x, this->ctx_.d.x);
+        goto next_instr;
+      case 0xee:    // out DX, AL
+        op_out(this->ctx_.d.x, this->ctx_.a.l);
+        goto next_instr;
+      case 0xef:    // out DX, AX
+        op_out(this->ctx_.d.x, this->ctx_.a.x);
         goto next_instr;
 
       case 0xf4:    // hlt
