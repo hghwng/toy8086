@@ -1,9 +1,16 @@
 #ifndef _HELPER_H_
 #define _HELPER_H_
+
 #include <cstdio>
 #include <cstdint>
-#include <unistd.h>
-#include <termios.h>
+#ifdef TOY8086_UNIX
+#  include <unistd.h>
+#  include <termios.h>
+#endif
+#ifdef TOY8086_WIN32
+#  include <conio.h>
+#endif
+
 using byte = uint8_t;
 using word = uint16_t;
 
@@ -32,7 +39,9 @@ inline void *to_ptr(T &p) {
   return &p;
 }
 
+
 inline int getonechar() {
+#ifdef TOY8086_UNIX
   struct termios oldt, newt;
 
   /*tcgetattr gets the parameters of the current terminal
@@ -58,6 +67,12 @@ inline int getonechar() {
   tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
 
   return c;
+#endif
+#ifdef TOY8086_MSVC
+  int c = _getch();  // getch() catch input unbuffered but with no echo.
+  printf("%c", c);
+  return c;
+#endif
 }
 
 #endif

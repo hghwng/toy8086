@@ -1,5 +1,9 @@
 #include "helper.h"
 #include "mem.h"
+#ifdef TOY8086_MSVC
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt16
+#endif
 
 struct Flag {
   union {

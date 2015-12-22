@@ -1,6 +1,5 @@
 #include "cpu.h"
-#include <fcntl.h>
-#include <unistd.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Cpu cpu;
@@ -9,9 +8,9 @@ int main(int argc, char **argv) {
   cpu.ctx_.ip = 0x100;
   void *mem_ptr = cpu.mem_.get<void>(cpu.ctx_.seg.cs, 0);
 
-  int fd = open("../test/com", O_RDONLY);
-  read(fd, mem_ptr, 0x10000);
-  close(fd);
+  FILE *f = fopen("../test/com", "rb");
+  fread(mem_ptr, 1, 0x10000, f);
+  fclose(f);
 
   auto st = cpu.run();
   switch (st) {
