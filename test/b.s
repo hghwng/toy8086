@@ -16,8 +16,16 @@ int #0x21
 
 mov ah, #0x01
 int #0x21
+sub al, #0x30
+
 add bl, al
 
+cmp bl, #9
+jle le_nine
+add bl, #0x7
+
+le_nine:
+add bl, #0x30
 mov ah, #0x02
 mov dl, #0x20 ; ' '
 int #0x21
