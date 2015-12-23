@@ -147,22 +147,16 @@ private:
   void decode_rm(byte b, void **rm);
   void decode_mod(byte b, void **mod);
 
-  void opb_add(byte &dst, byte &src);
-  void opw_add(word &dst, word &src);
-  void opb_adc(byte &dst, byte &src);
-  void opw_adc(word &dst, word &src);
-  void opb_sub(byte &dst, byte &src);
-  void opw_sub(word &dst, word &src);
-  void opb_sbb(byte &dst, byte &src);
-  void opw_sbb(word &dst, word &src);
-  void opb_and(byte &dst, byte &src);
-  void opw_and(word &dst, word &src);
-  void opb_or(byte &dst, byte &src);
-  void opw_or(word &dst, word &src);
-  void opb_xor(byte &dst, byte &src);
-  void opw_xor(word &dst, word &src);
-  void opb_cmp(byte  dst, byte  src);
-  void opw_cmp(word  dst, word  src);
+
+  template<typename T> void op_add(T &dst, T &src);
+  template<typename T> void op_adc(T &dst, T &src);
+  template<typename T> void op_sub(T &dst, T &src);
+  template<typename T> void op_sbb(T &dst, T &src);
+  template<typename T> void op_and(T &dst, T &src);
+  template<typename T> void op_or(T &dst, T &src);
+  template<typename T> void op_xor(T &dst, T &src);
+  template<typename T> void op_cmp(T dst, T src);
+
   void opw_push(word data);
   void opw_pop(word &data);
   void opw_xchg(word &dst, word &src);

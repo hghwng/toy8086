@@ -1,7 +1,13 @@
 #include "cpu.h"
 
-inline void Cpu::opb_add(byte &dst, byte &src) {
-  byte sum = dst + src;
+template<typename T>
+constexpr int sgnbit() {
+  return 1 << (sizeof(T) * 8 - 1);
+}
+
+template<typename T>
+inline void Cpu::op_add(T &dst, T &src) {
+  T sum = dst + src;
 
   // Algorithm for setting the overflow flag:
   //    if dst and src have different signs (dst ^ src), won't overflow
@@ -10,51 +16,26 @@ inline void Cpu::opb_add(byte &dst, byte &src) {
   //            set OF = 1
   //
   // finally, only keep the sign bit (& 0x80) and ignore other bits
-  ctx_.flag.o = (dst ^ src ^ 0x80) & ((sum ^ src) & 0x80);
+  ctx_.flag.o = (dst ^ src ^ sgnbit<T>()) & (sum ^ src) & sgnbit<T>();
   ctx_.flag.c = sum < src;
   ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
 
-inline void Cpu::opw_add(word &dst, word &src) {
-  word sum = dst + src;
-  ctx_.flag.o = (dst ^ src ^ 0x8000) & ((sum ^ src) & 0x8000);
-  ctx_.flag.c = sum < src;
-  ctx_.flag.set_a(dst, src, sum);
-  ctx_.flag.set_szp(sum);
-  dst = sum;
-}
-
-inline void Cpu::opb_adc(byte &dst, byte &src) {
-  byte sum = dst + src + ctx_.flag.c;
-  ctx_.flag.o = (dst ^ src ^ 0x80) & ((sum ^ src) & 0x80);
+template<typename T>
+inline void Cpu::op_adc(T &dst, T &src) {
+  T sum = dst + src + ctx_.flag.c;
+  ctx_.flag.o = (dst ^ src ^ sgnbit<T>()) & ((sum ^ src) & sgnbit<T>());
   ctx_.flag.c = (sum < src) | (sum == src && ctx_.flag.c);
   ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
 
-inline void Cpu::opw_adc(word &dst, word &src) {
-  word sum = dst + src + ctx_.flag.c;
-  ctx_.flag.o = (dst ^ src ^ 0x8000) & ((sum ^ src) & 0x8000);
-  ctx_.flag.c = (sum < src) | (sum == src && ctx_.flag.c);
-  ctx_.flag.set_a(dst, src, sum);
-  ctx_.flag.set_szp(sum);
-  dst = sum;
-}
-
-inline void Cpu::opb_sub(byte &dst, byte &src) {
-  byte result = dst - src;
-  ctx_.flag.c = result > dst;
-  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x80;
-  ctx_.flag.set_a(dst, src, result);
-  ctx_.flag.set_szp(result);
-  dst = result;
-}
-
-inline void Cpu::opw_sub(word &dst, word &src) {
-  word result = dst - src;
+template<typename T>
+inline void Cpu::op_sub(T &dst, T &src) {
+  T result = dst - src;
   ctx_.flag.c = result > dst;
 
   // Algorithm for setting the overflow flag (result = dst - src):
@@ -62,72 +43,46 @@ inline void Cpu::opw_sub(word &dst, word &src) {
   //    if dst and src have different signs
   //        if result and dst have different sign
   //            set OF = 1
-  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x8000;
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & sgnbit<T>();
   ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
 
-inline void Cpu::opb_sbb(byte &dst, byte &src) {
-  byte result = dst - src - ctx_.flag.c;
+template<typename T>
+inline void Cpu::op_sbb(T &dst, T &src) {
+  T result = dst - src - ctx_.flag.c;
   ctx_.flag.c = (result > dst) | (ctx_.flag.c && result == dst);
-  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x80;
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & sgnbit<T>();
   ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
 
-inline void Cpu::opw_sbb(word &dst, word &src) {
-  word result = dst - src - ctx_.flag.c;
-  ctx_.flag.c = (result > dst) | (ctx_.flag.c && result == dst);
-  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x8000;
-  ctx_.flag.set_a(dst, src, result);
-  ctx_.flag.set_szp(result);
-  dst = result;
-}
-
-inline void Cpu::opb_and(byte &dst, byte &src) {
+template<typename T>
+inline void Cpu::op_and(T &dst, T &src) {
   dst &= src;
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
 
-inline void Cpu::opw_and(word &dst, word &src) {
-  dst &= src;
-  ctx_.flag.c = ctx_.flag.o = 0;
-  ctx_.flag.set_szp(dst);
-}
-
-inline void Cpu::opb_or(byte &dst, byte &src) {
+template<typename T>
+inline void Cpu::op_or(T &dst, T &src) {
   dst |= src;
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
 
-inline void Cpu::opw_or(word &dst, word &src) {
-  dst |= src;
-  ctx_.flag.c = ctx_.flag.o = 0;
-  ctx_.flag.set_szp(dst);
-}
-
-inline void Cpu::opb_xor(byte &dst, byte &src) {
+template<typename T>
+inline void Cpu::op_xor(T &dst, T &src) {
   dst ^= src;
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
 
-inline void Cpu::opw_xor(word &dst, word &src) {
-  dst ^= src;
-  ctx_.flag.c = ctx_.flag.o = 0;
-  ctx_.flag.set_szp(dst);
-}
-
-inline void Cpu::opb_cmp(byte dst, byte src) {
-  opb_sub(dst, src);
-}
-
-inline void Cpu::opw_cmp(word dst, word src) {
-  opw_sub(dst, src);
+template<typename T>
+inline void Cpu::op_cmp(T dst, T src) {
+  op_sub(dst, src);
 }
 
 inline void Cpu::opw_push(word data) {
@@ -166,6 +121,11 @@ void Cpu::dump_status() {
           ctx_.flag.o, ctx_.flag.s, ctx_.flag.z,
           ctx_.flag.a, ctx_.flag.p, ctx_.flag.c);
 }
+
+#define EXECUTE_OP(_fn)                                     \
+  if (is_8bit) op_##_fn<byte>(to_byte(dst), to_byte(src));  \
+  else         op_##_fn<word>(to_word(dst), to_word(src));  \
+  break
 
 Cpu::ExitStatus Cpu::run() {
   for (;;) {
@@ -209,46 +169,14 @@ Cpu::ExitStatus Cpu::run() {
         }
 
         switch ((modrm >> 3) & 7) {
-          case 0:   // add
-            if (is_8bit) opb_add(to_byte(dst), to_byte(src));
-            else         opw_add(to_word(dst), to_word(src));
-            break;
-
-          case 1:   // or
-            if (is_8bit) opb_or(to_byte(dst), to_byte(src));
-            else         opw_or(to_word(dst), to_word(src));
-            break;
-
-          case 2:   // adc
-            if (is_8bit) opb_adc(to_byte(dst), to_byte(src));
-            else         opw_adc(to_word(dst), to_word(src));
-            break;
-
-          case 3:   // sbb
-            if (is_8bit) opb_sbb(to_byte(dst), to_byte(src));
-            else         opw_sbb(to_word(dst), to_word(src));
-            break;
-
-          case 4:   // and
-            if (is_8bit) opb_and(to_byte(dst), to_byte(src));
-            else         opw_and(to_word(dst), to_word(src));
-            break;
-
-          case 5:   // sub
-            if (is_8bit) opb_sub(to_byte(dst), to_byte(src));
-            else         opw_sub(to_word(dst), to_word(src));
-            break;
-
-          case 6:   // xor
-            if (is_8bit) opb_xor(to_byte(dst), to_byte(src));
-            else         opw_xor(to_word(dst), to_word(src));
-            break;
-
-          case 7:   // cmp
-            if (is_8bit) opb_cmp(to_byte(dst), to_byte(src));
-            else         opw_cmp(to_word(dst), to_word(src));
-            break;
-
+          case 0: EXECUTE_OP(add);
+          case 1: EXECUTE_OP(or);
+          case 2: EXECUTE_OP(adc);
+          case 3: EXECUTE_OP(sbb);
+          case 4: EXECUTE_OP(and);
+          case 5: EXECUTE_OP(sub);
+          case 6: EXECUTE_OP(xor);
+          case 7: EXECUTE_OP(cmp);
           default:  // won't reach here
             goto invalid_instr;
         }
@@ -296,46 +224,14 @@ Cpu::ExitStatus Cpu::run() {
         }
 
         switch (b & 0xf8) {
-          case 0x00:   // add
-            if (is_8bit) opb_add(to_byte(dst), to_byte(src));
-            else         opw_add(to_word(dst), to_word(src));
-            break;
-
-          case 0x10:   // adc
-            if (is_8bit) opb_adc(to_byte(dst), to_byte(src));
-            else         opw_adc(to_word(dst), to_word(src));
-            break;
-
-          case 0x20:   // and
-            if (is_8bit) opb_and(to_byte(dst), to_byte(src));
-            else         opw_and(to_word(dst), to_word(src));
-            break;
-
-          case 0x30:   // xor
-            if (is_8bit) opb_xor(to_byte(dst), to_byte(src));
-            else         opw_xor(to_word(dst), to_word(src));
-            break;
-
-          case 0x08:   // or
-            if (is_8bit) opb_or(to_byte(dst), to_byte(src));
-            else         opw_or(to_word(dst), to_word(src));
-            break;
-
-          case 0x18:   // sbb
-            if (is_8bit) opb_sbb(to_byte(dst), to_byte(src));
-            else         opw_sbb(to_word(dst), to_word(src));
-            break;
-
-          case 0x28:   // sub
-            if (is_8bit) opb_sub(to_byte(dst), to_byte(src));
-            else         opw_sub(to_word(dst), to_word(src));
-            break;
-
-          case 0x38:   // cmp
-            if (is_8bit) opb_cmp(to_byte(dst), to_byte(src));
-            else         opw_cmp(to_word(dst), to_word(src));
-            break;
-
+          case 0x00: EXECUTE_OP(add);
+          case 0x10: EXECUTE_OP(adc);
+          case 0x20: EXECUTE_OP(and);
+          case 0x30: EXECUTE_OP(xor);
+          case 0x08: EXECUTE_OP(or);
+          case 0x18: EXECUTE_OP(sbb);
+          case 0x28: EXECUTE_OP(sub);
+          case 0x38: EXECUTE_OP(cmp);
           case 0x88:   // mov (partial)
             if (is_8bit) to_byte(dst) = to_byte(src);
             else         to_word(dst) = to_word(src);
@@ -363,13 +259,13 @@ Cpu::ExitStatus Cpu::run() {
         switch (b & 0xf8) {
           case 0x40: {   // inc
             word v = 1;
-            opw_add(reg, v);
+            op_add<word>(reg, v);
             break;
           }
 
           case 0x48: {   // dec
             word v = 1;
-            opw_sub(reg, v);
+            op_sub<word>(reg, v);
             break;
           }
 
