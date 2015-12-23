@@ -18,16 +18,21 @@ struct Flag {
     word values;
   };
 
+  template<typename T>
+  void set_a(T dst, T src, T ret) {
+    a = (dst ^ src ^ ret) & 0x10;
+  }
+
   void set_szp(byte v) {
     z = (v == 0);
     s = (v & 0x80);
-    p = __builtin_popcount(v) & 1;
+    p = !(__builtin_popcount(v) & 1);
   }
 
   void set_szp(word v) {
     z = (v == 0);
     s = (v & 0x8000);
-    p = __builtin_popcount(static_cast<byte>(v)) & 1;
+    p = !(__builtin_popcount(static_cast<byte>(v)) & 1);
   }
 
 };  // Flag

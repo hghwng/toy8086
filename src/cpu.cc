@@ -2,9 +2,17 @@
 
 inline void Cpu::opb_add(byte &dst, byte &src) {
   byte sum = dst + src;
+
+  // Algorithm for setting the overflow flag:
+  //    if dst and src have different signs (dst ^ src), won't overflow
+  //    if dst and src have the same sign (dst ^ src ^ 0x80)
+  //        if the result have different sign (sum ^ src)
+  //            set OF = 1
+  //
+  // finally, only keep the sign bit (& 0x80) and ignore other bits
   ctx_.flag.o = (dst ^ src ^ 0x80) & ((sum ^ src) & 0x80);
   ctx_.flag.c = sum < src;
-  ctx_.flag.a = ((dst ^ src ^ sum) & 0x10) == 0x10;
+  ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
@@ -13,7 +21,7 @@ inline void Cpu::opw_add(word &dst, word &src) {
   word sum = dst + src;
   ctx_.flag.o = (dst ^ src ^ 0x8000) & ((sum ^ src) & 0x8000);
   ctx_.flag.c = sum < src;
-  ctx_.flag.a = ((dst ^ src ^ sum) & 0x10) == 0x10;
+  ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
@@ -22,7 +30,7 @@ inline void Cpu::opb_adc(byte &dst, byte &src) {
   byte sum = dst + src + ctx_.flag.c;
   ctx_.flag.o = (dst ^ src ^ 0x80) & ((sum ^ src) & 0x80);
   ctx_.flag.c = (sum < src) | (sum == src && ctx_.flag.c);
-  ctx_.flag.a = ((dst ^ src ^ sum) & 0x10) == 0x10;
+  ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
@@ -31,7 +39,7 @@ inline void Cpu::opw_adc(word &dst, word &src) {
   word sum = dst + src + ctx_.flag.c;
   ctx_.flag.o = (dst ^ src ^ 0x8000) & ((sum ^ src) & 0x8000);
   ctx_.flag.c = (sum < src) | (sum == src && ctx_.flag.c);
-  ctx_.flag.a = ((dst ^ src ^ sum) & 0x10) == 0x10;
+  ctx_.flag.set_a(dst, src, sum);
   ctx_.flag.set_szp(sum);
   dst = sum;
 }
@@ -39,8 +47,8 @@ inline void Cpu::opw_adc(word &dst, word &src) {
 inline void Cpu::opb_sub(byte &dst, byte &src) {
   byte result = dst - src;
   ctx_.flag.c = result > dst;
-  ctx_.flag.o = (dst ^ src ^ 0x80) & ((result ^ src) & 0x80);
-  ctx_.flag.a = ((dst ^ src ^ result) & 0x10) == 0x10;
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x80;
+  ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
@@ -48,8 +56,14 @@ inline void Cpu::opb_sub(byte &dst, byte &src) {
 inline void Cpu::opw_sub(word &dst, word &src) {
   word result = dst - src;
   ctx_.flag.c = result > dst;
-  ctx_.flag.o = (dst ^ src ^ 0x8000) & ((result ^ src) & 0x8000);
-  ctx_.flag.a = ((dst ^ src ^ result) & 0x10) == 0x10;
+
+  // Algorithm for setting the overflow flag (result = dst - src):
+  //    if dst and src have the same sign, won't overflow
+  //    if dst and src have different signs
+  //        if result and dst have different sign
+  //            set OF = 1
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x8000;
+  ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
@@ -57,8 +71,8 @@ inline void Cpu::opw_sub(word &dst, word &src) {
 inline void Cpu::opb_sbb(byte &dst, byte &src) {
   byte result = dst - src - ctx_.flag.c;
   ctx_.flag.c = (result > dst) | (ctx_.flag.c && result == dst);
-  ctx_.flag.o = (dst ^ src ^ 0x80) & ((result ^ src) & 0x80);
-  ctx_.flag.a = ((dst ^ src ^ result) & 0x10) == 0x10;
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x80;
+  ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
@@ -66,8 +80,8 @@ inline void Cpu::opb_sbb(byte &dst, byte &src) {
 inline void Cpu::opw_sbb(word &dst, word &src) {
   word result = dst - src - ctx_.flag.c;
   ctx_.flag.c = (result > dst) | (ctx_.flag.c && result == dst);
-  ctx_.flag.o = (dst ^ src ^ 0x8000) & ((result ^ src) & 0x8000);
-  ctx_.flag.a = ((dst ^ src ^ result) & 0x10) == 0x10;
+  ctx_.flag.o = (dst ^ src) & (result ^ dst) & 0x8000;
+  ctx_.flag.set_a(dst, src, result);
   ctx_.flag.set_szp(result);
   dst = result;
 }
