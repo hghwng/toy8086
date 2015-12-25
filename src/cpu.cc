@@ -363,6 +363,18 @@ Cpu::ExitStatus Cpu::run() {
       case 0x90:    // nop
         goto next_instr;
 
+      case 0xc2:    // ret Iw
+        ctx_.sp += fetchw();
+      case 0xc3:    // ret
+        opw_pop(ctx_.ip);
+        goto next_instr;
+      case 0xca:    // ret FAR Iw
+        ctx_.sp += fetchw();
+      case 0xcb:    // ret FAR
+        opw_pop(ctx_.ip);
+        opw_pop(ctx_.seg.cs);
+        goto next_instr;
+
       case 0xcc:    // int 3
         handle_interrupt(3);
         goto next_instr;
@@ -393,6 +405,22 @@ Cpu::ExitStatus Cpu::run() {
         goto next_instr;
       case 0xef:    // out DX, AX
         op_out(this->ctx_.d.x, this->ctx_.a.x);
+        goto next_instr;
+
+      case 0xe8:    // call Jv
+        opw_push(ctx_.ip);
+      case 0xe9:    // jmp Jv
+        ctx_.ip += fetchw();
+        goto next_instr;
+      case 0x9a:    // call Ap
+        opw_push(ctx_.seg.cs);
+        opw_push(ctx_.ip);
+      case 0xea:    // jmp Ap
+        ctx_.seg.cs = fetchw();
+        ctx_.ip = fetchw();
+        goto next_instr;
+      case 0xeb:    // jmp Jb
+        ctx_.ip += fetch();
         goto next_instr;
 
       case 0xf4:    // hlt
