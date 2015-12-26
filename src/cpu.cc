@@ -85,28 +85,79 @@ inline void Cpu::op_cmp(T dst, T src) {
   op_sub(dst, src);
 }
 
-inline void Cpu::opw_push(word data) {
+template<typename T>
+inline void Cpu::op_test(T dst, T src) {
+  op_and(dst, src);
+}
+
+template<typename T>
+inline void Cpu::op_not(T &dst) {
+  dst = ~dst;
+}
+
+template<typename T>
+inline void Cpu::op_neg(T &dst) {
+  dst = -dst;
+}
+
+inline void Cpu::op_mul(byte imm) {
+  ctx_.a.x = ctx_.a.l * imm;
+}
+
+inline void Cpu::op_mul(word imm) {
+  uint32_t ret = ctx_.a.x * imm;
+  ctx_.a.x = ret;
+  ctx_.d.x = ret >> 16;
+}
+
+inline void Cpu::op_imul(byte imm) {
+  ctx_.a.x = (int8_t)ctx_.a.l * (int8_t)imm;
+}
+
+inline void Cpu::op_imul(word imm) {
+  int32_t ret = (int16_t)ctx_.a.x * (int16_t)imm;
+  ctx_.a.x = ret;
+  ctx_.d.x = ret >> 16;
+}
+
+inline void Cpu::op_div(byte imm) {
+  // XXX
+}
+
+inline void Cpu::op_div(word imm) {
+  // XXX
+}
+
+inline void Cpu::op_idiv(byte imm) {
+  // XXX
+}
+
+inline void Cpu::op_idiv(word imm) {
+  // XXX
+}
+
+inline void Cpu::op_push(word data) {
   ctx_.sp -= sizeof(word);
   *mem_.get<word>(ctx_.seg.get(Segment::kSegSs), ctx_.sp) = data;
 }
 
-inline void Cpu::opw_pop(word &data) {
+inline void Cpu::op_pop(word &data) {
   data = *mem_.get<word>(ctx_.seg.get(Segment::kSegSs), ctx_.sp);
   ctx_.sp += sizeof(word);
 }
 
-inline void Cpu::opw_xchg(word &dst, word &src) {
+inline void Cpu::op_xchg(word &dst, word &src) {
   word tmp = src;
   src = dst;
   dst = tmp;
 }
 
 template<typename D, typename S> void Cpu::op_in(D &dst, S src) {
-
+  // XXX
 };
 
 template<typename D, typename S> void Cpu::op_out(D dst, S &src) {
-
+  // XXX
 };
 
 void Cpu::dump_status() {
@@ -122,9 +173,14 @@ void Cpu::dump_status() {
           ctx_.flag.a, ctx_.flag.p, ctx_.flag.c);
 }
 
-#define EXECUTE_OP(_fn)                                     \
-  if (is_8bit) op_##_fn<byte>(to_byte(dst), to_byte(src));  \
-  else         op_##_fn<word>(to_word(dst), to_word(src));  \
+#define EXECUTE_OP2(_fn)                                     \
+  if (is_8bit) op_##_fn(to_byte(dst), to_byte(src));  \
+  else         op_##_fn(to_word(dst), to_word(src));  \
+  break
+
+#define EXECUTE_OP(_fn)                       \
+  if (is_8bit) op_##_fn(to_byte(dst));  \
+  else         op_##_fn(to_word(dst));  \
   break
 
 Cpu::ExitStatus Cpu::run() {
@@ -168,19 +224,41 @@ Cpu::ExitStatus Cpu::run() {
         }
 
         switch ((modrm >> 3) & 7) {
-          case 0: EXECUTE_OP(add);
-          case 1: EXECUTE_OP(or);
-          case 2: EXECUTE_OP(adc);
-          case 3: EXECUTE_OP(sbb);
-          case 4: EXECUTE_OP(and);
-          case 5: EXECUTE_OP(sub);
-          case 6: EXECUTE_OP(xor);
-          case 7: EXECUTE_OP(cmp);
-          default:  // won't reach here
-            goto invalid_instr;
+          case 0: EXECUTE_OP2(add);
+          case 1: EXECUTE_OP2(or);
+          case 2: EXECUTE_OP2(adc);
+          case 3: EXECUTE_OP2(sbb);
+          case 4: EXECUTE_OP2(and);
+          case 5: EXECUTE_OP2(sub);
+          case 6: EXECUTE_OP2(xor);
+          case 7: EXECUTE_OP2(cmp);
         }
         goto next_instr;
       }   // 0x80 to 0x83, group 1
+
+      case 0xf6: case 0xf7: {   // group 3a / 3b
+        byte modrm = fetch();
+        void *dst = decode_rm(modrm);
+        bool is_8bit = b == 0xf6;
+
+        switch ((modrm >> 3) & 7) {
+          case 0: {
+            void *src = is_8bit ? to_ptr(fetch()) : to_ptr(fetchw());
+            EXECUTE_OP2(test);
+          }
+          case 1: return kExitInvalidInstruction;
+          case 2: EXECUTE_OP(not);
+          case 3: {
+            ctx_.flag.c = modrm >> 6;
+            EXECUTE_OP(neg);
+          }
+          case 4: EXECUTE_OP(mul);
+          case 5: EXECUTE_OP(imul);
+          case 6: EXECUTE_OP(div);
+          case 7: EXECUTE_OP(idiv);
+        }
+        goto next_instr;
+      }
 
       case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05:  // add
       case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15:  // adc
@@ -223,14 +301,14 @@ Cpu::ExitStatus Cpu::run() {
         }
 
         switch (b & 0xf8) {
-          case 0x00: EXECUTE_OP(add);
-          case 0x10: EXECUTE_OP(adc);
-          case 0x20: EXECUTE_OP(and);
-          case 0x30: EXECUTE_OP(xor);
-          case 0x08: EXECUTE_OP(or);
-          case 0x18: EXECUTE_OP(sbb);
-          case 0x28: EXECUTE_OP(sub);
-          case 0x38: EXECUTE_OP(cmp);
+          case 0x00: EXECUTE_OP2(add);
+          case 0x10: EXECUTE_OP2(adc);
+          case 0x20: EXECUTE_OP2(and);
+          case 0x30: EXECUTE_OP2(xor);
+          case 0x08: EXECUTE_OP2(or);
+          case 0x18: EXECUTE_OP2(sbb);
+          case 0x28: EXECUTE_OP2(sub);
+          case 0x38: EXECUTE_OP2(cmp);
           case 0x88:   // mov (partial)
             if (is_8bit) to_byte(dst) = to_byte(src);
             else         to_word(dst) = to_word(src);
@@ -288,15 +366,15 @@ Cpu::ExitStatus Cpu::run() {
           }
 
           case 0x50:    // push
-            opw_push(reg);
+            op_push(reg);
             break;
 
           case 0x58:    // pop
-            opw_pop(reg);
+            op_pop(reg);
             break;
 
           case 0x90:    // xchg
-            opw_xchg(reg, ctx_.a.x);
+            op_xchg(reg, ctx_.a.x);
             break;
 
           case 0xb8:    // mov
@@ -384,13 +462,13 @@ Cpu::ExitStatus Cpu::run() {
       case 0xc2:    // ret Iw
         ctx_.sp += fetchw();
       case 0xc3:    // ret
-        opw_pop(ctx_.ip);
+        op_pop(ctx_.ip);
         goto next_instr;
       case 0xca:    // ret FAR Iw
         ctx_.sp += fetchw();
       case 0xcb:    // ret FAR
-        opw_pop(ctx_.ip);
-        opw_pop(ctx_.seg.cs);
+        op_pop(ctx_.ip);
+        op_pop(ctx_.seg.cs);
         goto next_instr;
 
       case 0xcc:    // int 3
@@ -437,13 +515,13 @@ Cpu::ExitStatus Cpu::run() {
       }
 
       case 0xe8:    // call Jv
-        opw_push(ctx_.ip);
+        op_push(ctx_.ip);
       case 0xe9:    // jmp Jv
         ctx_.ip += fetchw();
         goto next_instr;
       case 0x9a:    // call Ap
-        opw_push(ctx_.seg.cs);
-        opw_push(ctx_.ip);
+        op_push(ctx_.seg.cs);
+        op_push(ctx_.ip);
       case 0xea:    // jmp Ap
         ctx_.seg.cs = fetchw();
         ctx_.ip = fetchw();

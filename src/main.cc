@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
   cpu.ctx_.ip = 0x100;
   void *mem_ptr = cpu.mem_.get<void>(cpu.ctx_.seg.cs, 0);
 
-  FILE *f = fopen("../test/com", "rb");
+  FILE *f = fopen("/home/hugh/tmp/hi-world.com", "rb");
   fread(mem_ptr, 1, 0x10000, f);
   fclose(f);
 

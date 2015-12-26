@@ -155,10 +155,22 @@ private:
   template<typename T> void op_or(T &dst, T &src);
   template<typename T> void op_xor(T &dst, T &src);
   template<typename T> void op_cmp(T dst, T src);
+  template<typename T> void op_test(T dst, T src);
 
-  void opw_push(word data);
-  void opw_pop(word &data);
-  void opw_xchg(word &dst, word &src);
+  template<typename T> void op_not(T &dst);
+  template<typename T> void op_neg(T &dst);
+  inline void op_mul(byte imm);
+  inline void op_mul(word imm);
+  inline void op_imul(byte imm);
+  inline void op_imul(word imm);
+  inline void op_div(byte imm);
+  inline void op_div(word imm);
+  inline void op_idiv(byte imm);
+  inline void op_idiv(word imm);
+
+  void op_push(word data);
+  void op_pop(word &data);
+  void op_xchg(word &dst, word &src);
   template<typename D, typename S> void op_in(D &dst, S src);
   template<typename D, typename S> void op_out(D dst, S &src);
 
