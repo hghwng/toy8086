@@ -141,9 +141,8 @@ Cpu::ExitStatus Cpu::run() {
       case 0x3e: ctx_.seg.set(Segment::kSegDs); continue;
 
       case 0x80: case 0x81: case 0x82: case 0x83: {   // group 1
-        void *dst;
         byte modrm = fetch();
-        decode_rm(modrm, &dst);
+        void *dst = decode_rm(modrm);
 
         // 80 82 -> Eb Ib
         // 81    -> Ev Iv
@@ -200,16 +199,16 @@ Cpu::ExitStatus Cpu::run() {
             is_8bit = true;
           case 1:   // Ev Gv
             tmp = fetch();
-            decode_rm(tmp, &dst);
-            decode_mod(tmp, &src);
+            dst = decode_rm(tmp);
+            src = decode_reg(tmp);
             break;
 
           case 2:   // Gb Eb
             is_8bit = true;
           case 3:   // Gv Ev
             tmp = fetch();
-            decode_rm(tmp, &src);
-            decode_mod(tmp, &dst);
+            src = decode_rm(tmp);
+            dst = decode_reg(tmp);
             break;
 
           case 4:   // AL Ib
@@ -241,7 +240,26 @@ Cpu::ExitStatus Cpu::run() {
             goto invalid_instr;
         }
         goto next_instr;
-      } //  case of some opcode from 0x00 to 0x3d
+      }  // case of some opcode from 0x00 to 0x3d
+
+      case 0x8c: case 0x8e: {   // mov, segment <-> modrm
+        byte modrm = fetch();
+        word &reg = to_word(decode_rm(modrm));
+        word seg_id = (b >> 3) & 7;
+        if (seg_id >= Segment::kSegMax) return kExitInvalidInstruction;
+
+        word &seg = ctx_.seg.reg_seg[seg_id];
+        if (b == 0x8c) reg = seg;   // Ew Sw
+        else           seg = reg;   // Sw Ew
+        goto next_instr;
+      }
+
+      case 0xc6: case 0xc7: {   // mov
+        void *ptr = decode_rm(fetch());
+        if (b == 0xc6)  to_byte(ptr) = fetch();
+        else            to_word(ptr) = fetchw();
+        goto next_instr;
+      }
 
       case 0x40: case 0x41: case 0x42: case 0x43:   // inc
       case 0x44: case 0x45: case 0x46: case 0x47:
@@ -383,29 +401,40 @@ Cpu::ExitStatus Cpu::run() {
         goto next_instr;
 
       case 0xe4:    // in AL, Ib
-        op_in(this->ctx_.a.l, fetch());
+        op_in(ctx_.a.l, fetch());
         goto next_instr;
       case 0xe5:    // in AX, Ib
-        op_in(this->ctx_.a.x, fetch());
+        op_in(ctx_.a.x, fetch());
         goto next_instr;
       case 0xe6:    // out AL, Ib
-        op_out(fetch(), this->ctx_.a.l);
+        op_out(fetch(), ctx_.a.l);
         goto next_instr;
       case 0xe7:    // out AX, Ib
-        op_out(fetch(), this->ctx_.a.x);
+        op_out(fetch(), ctx_.a.x);
         goto next_instr;
       case 0xec:    // in AL, DX
-        op_in(this->ctx_.a.l, this->ctx_.d.x);
+        op_in(ctx_.a.l, ctx_.d.x);
         goto next_instr;
       case 0xed:    // in AX, DX
-        op_in(this->ctx_.a.x, this->ctx_.d.x);
+        op_in(ctx_.a.x, ctx_.d.x);
         goto next_instr;
       case 0xee:    // out DX, AL
-        op_out(this->ctx_.d.x, this->ctx_.a.l);
+        op_out(ctx_.d.x, ctx_.a.l);
         goto next_instr;
       case 0xef:    // out DX, AX
-        op_out(this->ctx_.d.x, this->ctx_.a.x);
+        op_out(ctx_.d.x, ctx_.a.x);
         goto next_instr;
+
+      case 0xe0: case 0xe1: case 0xe2: {    // loopnz / loopz / loop
+        char offset = fetch();
+        if (!--ctx_.c.x) continue;
+        if ((b == 0xe0 && !ctx_.flag.z) ||  // loopnz
+            (b == 0xe1 && ctx_.flag.z) ||   // loopz
+            (b == 0xe2)) {                  // loop
+          ctx_.ip += offset;
+        }
+        goto next_instr;
+      }
 
       case 0xe8:    // call Jv
         opw_push(ctx_.ip);
@@ -440,14 +469,12 @@ next_instr:
   }   // end of fetch opcode loop
 }
 
-void Cpu::decode_rm(byte b, void **rm) {
+void *Cpu::decode_rm(byte b) {
   byte modbits = (b >> 6) & 3;
   byte rmbits = b & 7;
 
-  if (modbits == 3) {
-    *rm = &ctx_.reg_gen[rmbits & 3].v[rmbits >> 2];
-    return;
-  }
+  // mod = 0b11: register only
+  if (modbits == 3) return &ctx_.reg_gen[rmbits & 3].v[rmbits >> 2];
 
   uint16_t base;
   switch (rmbits) {
@@ -459,8 +486,9 @@ void Cpu::decode_rm(byte b, void **rm) {
     case 5: base = ctx_.di;             break;
     case 6:
       if (modbits == 0) {
+        // mod = 0b00, rm = 0b110: EA = disp16
         base = 0;
-        modbits = 2;    // 01 110 xxx: EA = disp16
+        modbits = 2;
       } else {
         base = ctx_.bp;
       }
@@ -471,15 +499,17 @@ void Cpu::decode_rm(byte b, void **rm) {
   }
 
   if (modbits == 1) {
-    *rm = mem_.get<void>(ctx_.seg.get(), base + fetch());
+    return mem_.get<void>(ctx_.seg.get(), base + fetch());
   } else if (modbits == 2) {
-    *rm = mem_.get<void>(ctx_.seg.get(), base + fetchw());
+    return mem_.get<void>(ctx_.seg.get(), base + fetchw());
+  } else {
+    return mem_.get<void>(ctx_.seg.get(), base);
   }
 }
 
-void Cpu::decode_mod(byte b, void **reg) {
+void *Cpu::decode_reg(byte b) {
   byte regbits = (b >> 3) & 7;
-  *reg = &ctx_.reg_gen[regbits & 3].v[regbits >> 2];
+  return &ctx_.reg_gen[regbits & 3].v[regbits >> 2];
 }
 
 void Cpu::handle_interrupt(byte interrupt) {

@@ -40,10 +40,10 @@ struct Flag {
 struct Segment {
   enum Id {
     kSegDefault       = -1,
+    kSegEs,
     kSegCs,
     kSegSs,
     kSegDs,
-    kSegEs,
     kSegFs,
     kSegGs,
     kSegMax
@@ -111,12 +111,12 @@ struct Context {
   Flag flag;
 };  // Context
 
-
 class Cpu {
 public:
   enum ExitStatus {
     kExitHalt,
     kExitInvalidOpcode,
+    kExitInvalidInstruction,
   };
 
   Memory mem_;
@@ -144,9 +144,8 @@ private:
     return tmp;
   }
 
-  void decode_rm(byte b, void **rm);
-  void decode_mod(byte b, void **mod);
-
+  void *decode_rm(byte b);
+  void *decode_reg(byte b);
 
   template<typename T> void op_add(T &dst, T &src);
   template<typename T> void op_adc(T &dst, T &src);

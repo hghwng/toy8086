@@ -20,6 +20,9 @@ int main(int argc, char **argv) {
     case Cpu::kExitInvalidOpcode:
       printf("Program exited because of invaild opcode.\n");
       break;
+    case Cpu::kExitInvalidInstruction:
+      printf("Program exited because of invaild instruction.\n");
+      break;
   }
 
   return 0;
