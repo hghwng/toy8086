@@ -168,6 +168,14 @@ private:
   inline void op_idiv(byte imm);
   inline void op_idiv(word imm);
 
+  template<typename T> void op_rol(T &dst, T src);
+  template<typename T> void op_ror(T &dst, T src);
+  template<typename T> void op_rcl(T &dst, T src);
+  template<typename T> void op_rcr(T &dst, T src);
+  template<typename T> void op_shl(T &dst, T src);
+  template<typename T> void op_shr(T &dst, T src);
+  template<typename T> void op_sar(T &dst, T src);
+
   void op_push(word data);
   void op_pop(word &data);
   void op_xchg(word &dst, word &src);

@@ -100,6 +100,41 @@ inline void Cpu::op_neg(T &dst) {
   dst = -dst;
 }
 
+template<typename T>
+void Cpu::op_rol(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_ror(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_rcl(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_rcr(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_shl(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_shr(T &dst, T src) {
+  // XXX
+}
+
+template<typename T>
+void Cpu::op_sar(T &dst, T src) {
+  // XXX
+}
+
 inline void Cpu::op_mul(byte imm) {
   ctx_.a.x = ctx_.a.l * imm;
 }
@@ -223,7 +258,7 @@ Cpu::ExitStatus Cpu::run() {
             break;
         }
 
-        switch ((modrm >> 3) & 7) {
+        switch ((modrm >> 3) & 7) {   // group 1
           case 0: EXECUTE_OP2(add);
           case 1: EXECUTE_OP2(or);
           case 2: EXECUTE_OP2(adc);
@@ -234,7 +269,26 @@ Cpu::ExitStatus Cpu::run() {
           case 7: EXECUTE_OP2(cmp);
         }
         goto next_instr;
-      }   // 0x80 to 0x83, group 1
+      }
+
+      case 0xd0: case 0xd1: case 0xd2: case 0xd3: {   // group 2
+        byte modrm = fetch();
+        word one = 1;
+        void *dst = decode_rm(modrm);
+        void *src = b < 0xd2 ? to_ptr(one) : to_ptr(ctx_.c.l);
+        bool is_8bit = (b & 1) == 0;
+
+        switch ((modrm >> 3) & 7) {
+          case 0: EXECUTE_OP2(rol);
+          case 1: EXECUTE_OP2(ror);
+          case 2: EXECUTE_OP2(rcl);
+          case 3: EXECUTE_OP2(rcr);
+          case 4: EXECUTE_OP2(shl);
+          case 5: EXECUTE_OP2(shr);
+          case 6:
+          case 7: EXECUTE_OP2(sar);
+        }
+      }
 
       case 0xf6: case 0xf7: {   // group 3a / 3b
         byte modrm = fetch();
