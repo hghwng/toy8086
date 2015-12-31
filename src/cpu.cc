@@ -122,12 +122,22 @@ void Cpu::op_rcr(T &dst, T src) {
 
 template<typename T>
 void Cpu::op_shl(T &dst, T src) {
-  // XXX
+  T ret = dst << src;
+  ctx_.flag.c = dst & (1 << src);
+  ctx_.flag.o = (dst ^ ret) & sgnbit<T>();
+  // XXX AF
+  ctx_.flag.set_szp(ret);
+  dst = ret;
 }
 
 template<typename T>
 void Cpu::op_shr(T &dst, T src) {
-  // XXX
+  T ret = dst >> src;
+  if (src > 0) ctx_.flag.c = false;
+  ctx_.flag.o = (dst ^ ret) & sgnbit<T>();
+  // XXX AF
+  ctx_.flag.set_szp(dst);
+  dst = ret;
 }
 
 template<typename T>
@@ -288,6 +298,7 @@ Cpu::ExitStatus Cpu::run() {
           case 6:
           case 7: EXECUTE_OP2(sar);
         }
+        goto next_instr;
       }
 
       case 0xf6: case 0xf7: {   // group 3a / 3b
@@ -526,8 +537,8 @@ Cpu::ExitStatus Cpu::run() {
         goto next_instr;
 
       case 0xcc:    // int 3
-        handle_interrupt(3);
-        goto next_instr;
+        dump_status();
+        return kExitDebugInterrupt;
       case 0xcd:    // int
         handle_interrupt(fetch());
         goto next_instr;

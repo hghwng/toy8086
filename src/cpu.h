@@ -115,6 +115,7 @@ class Cpu {
 public:
   enum ExitStatus {
     kExitHalt,
+    kExitDebugInterrupt,
     kExitInvalidOpcode,
     kExitInvalidInstruction,
   };
