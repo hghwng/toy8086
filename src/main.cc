@@ -3,8 +3,9 @@
 
 int main(int argc, char **argv) {
   Cpu cpu;
-  cpu.ctx_.seg.cs = 0;
-  cpu.ctx_.seg.ss = 0x3000;
+  cpu.ctx_.seg.cs = cpu.ctx_.seg.ds =
+    cpu.ctx_.seg.es = cpu.ctx_.seg.ss = 0x700;
+  cpu.ctx_.sp = 0xfffe;
   cpu.ctx_.ip = 0x100;
   void *mem_ptr = cpu.mem_.get<void>(cpu.ctx_.seg.cs, cpu.ctx_.ip);
 

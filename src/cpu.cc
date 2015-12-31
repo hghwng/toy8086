@@ -587,12 +587,26 @@ Cpu::ExitStatus Cpu::run() {
       case 0x9a:    // call Ap
         op_push(ctx_.seg.cs);
         op_push(ctx_.ip);
+        goto next_instr;
       case 0xea:    // jmp Ap
         ctx_.seg.cs = fetchw();
         ctx_.ip = fetchw();
         goto next_instr;
       case 0xeb:    // jmp Jb
         ctx_.ip += fetch();
+        goto next_instr;
+
+      case 0xa0:    // mov AL Ob
+        ctx_.a.l = *mem_.get<byte>(ctx_.seg.get(), fetchw());
+        goto next_instr;
+      case 0xa1:    // mov AX Ov
+        ctx_.a.x = *mem_.get<word>(ctx_.seg.get(), fetchw());
+        goto next_instr;
+      case 0xa2:    // mov Ob AL
+        *mem_.get<byte>(ctx_.seg.get(), fetchw()) = ctx_.a.l;
+        goto next_instr;
+      case 0xa3:    // mov Ov AX
+        *mem_.get<word>(ctx_.seg.get(), fetchw()) = ctx_.a.x;
         goto next_instr;
 
       case 0xf4:    // hlt
@@ -666,6 +680,9 @@ void Cpu::handle_interrupt(byte interrupt) {
           printf("%c", ctx_.d.l);
           ctx_.a.l = ctx_.d.l;  // side effect
           break;
+        case 0x09: { // print string terminated by '$' to stdout
+          // XXX
+        }
       }
     }
   }
