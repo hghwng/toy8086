@@ -112,6 +112,12 @@ struct Context {
   Flag flag;
 };  // Context
 
+struct BeepPlayer {
+  bool playing = false;
+  dword frequency = 0xffffffff;
+  byte device_8255 = 0xfd;
+};  // BeepPlayer
+
 class Cpu {
 public:
   enum ExitStatus {
@@ -124,6 +130,7 @@ public:
 
   Memory mem_;
   Context ctx_;
+  BeepPlayer player_;
 
   void dump_status();
   ExitStatus run();

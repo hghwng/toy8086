@@ -1,4 +1,8 @@
 #include "cpu.h"
+#ifdef TOY8086_WIN32
+#  include <windows.h>
+#endif
+#include <ctime>
 
 template<typename T>
 constexpr int sgnbit() {
@@ -62,7 +66,6 @@ inline void Cpu::op_sbb(T &dst, T &src) {
 template<typename T>
 inline void Cpu::op_and(T &dst, T &src) {
   dst &= src;
-  fprintf(stderr, "& dst %x, src %x\n", dst, src);
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
@@ -70,7 +73,6 @@ inline void Cpu::op_and(T &dst, T &src) {
 template<typename T>
 inline void Cpu::op_or(T &dst, T &src) {
   dst |= src;
-  fprintf(stderr, "| dst %x, src %x\n", dst, src);
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
@@ -252,11 +254,33 @@ inline void Cpu::op_xchg(word &dst, word &src) {
 }
 
 template<typename D, typename S> void Cpu::op_in(D &dst, S src) {
+  switch (src) {
+    case 0x61:
+      dst = (D) player_.device_8255;
+      break;
+  }
   // XXX
 };
 
 template<typename D, typename S> void Cpu::op_out(D dst, S &src) {
-  // XXX
+  switch (dst) {
+    case 0x61:
+      player_.device_8255 = src;
+      player_.playing = (player_.device_8255 & 0x3) == 0x3;
+      break;
+    case 0x42: {
+      static word freq_dividend = 0xffff;
+      static bool writing = false;
+      if (!writing) freq_dividend = (freq_dividend & 0xff00) | src;
+      else freq_dividend = (freq_dividend & 0x00ff) | (src << 8);
+      writing = !writing;
+      if (!writing) {
+        player_.frequency = 0x122870u / freq_dividend;
+      }
+      break;
+    }
+    // FIXME: Yes, I ignored out 43 for ease.
+  }
 };
 
 void Cpu::dump_status() {
@@ -792,6 +816,30 @@ Cpu::ExitStatus Cpu::handle_interrupt(byte interrupt) {
           break;
       }
       break;
+    case 0x1a: {
+      switch (ctx_.a.h) {
+        case 0x00: {
+          time_t current_time = time(NULL);
+          struct tm *current_tm = localtime(&current_time);
+          dword ticks = (current_tm->tm_hour * 3600 + current_tm->tm_min * 60
+                         + current_tm->tm_sec) * 0x1800b0u / (24 * 60 * 60);
+          ctx_.c.x = ticks & 0xffff;
+          ctx_.d.x = ticks >> 16;
+          ctx_.a.l = 0;  // FIXME: add some static variables to make it right.
+          if (player_.playing) {
+#ifdef TOY8086_WIN32
+            Beep(player_.frequency, 120);  // FIXME: It cannot be any shorter because of hardware delay.
+#endif
+#ifdef TOY8086_UNIX
+            fprintf(stderr, "Playing using frequency %u\n", player_.frequency);
+            usleep(54925);
+#endif
+          }
+        }
+          break;
+      }
+    }
+	  break;
     default:
       fprintf(stderr, "Unknown interrupt: %x. \n", interrupt);
     }
