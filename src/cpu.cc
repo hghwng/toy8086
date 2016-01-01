@@ -602,6 +602,16 @@ Cpu::ExitStatus Cpu::run() {
         ctx_.ip += fetch();
         goto next_instr;
 
+      case 0x0e:    // push cs
+        op_push(ctx_.seg.cs);
+        goto next_instr;
+      case 0x1e:    // push ds
+        op_push(ctx_.seg.ds);
+        goto next_instr;
+      case 0x1f:    // pop ds
+        op_pop(ctx_.seg.ds);
+        goto next_instr;
+
       case 0xa0:    // mov AL Ob
         ctx_.a.l = *mem_.get<byte>(ctx_.seg.get(), fetchw());
         goto next_instr;
