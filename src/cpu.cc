@@ -397,6 +397,13 @@ Cpu::ExitStatus Cpu::run() {
         goto next_instr;
       }
 
+      case 0x8d: {   // lea Gv M
+        byte modrm = fetch();
+        word &dst = to_word(decode_reg(fetch(), modrm));
+        dst = (byte *)(decode_rm(modrm)) - mem_.get<byte>(ctx_.seg.get(), 0);
+        goto next_instr;
+      }
+
       case 0xc6: case 0xc7: {   // mov
         void *ptr = decode_rm(fetch());
         if (b == 0xc6)  to_byte(ptr) = fetch();
