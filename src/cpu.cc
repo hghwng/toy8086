@@ -243,12 +243,11 @@ Cpu::ExitStatus Cpu::run() {
 
       case 0x80: case 0x81: case 0x82: case 0x83: {   // group 1
         byte modrm = fetch();
-        void *dst = decode_rm(modrm);
 
         // 80 82 -> Eb Ib
         // 81    -> Ev Iv
         // 83    -> Ev Ib
-        int is_8bit;
+        bool is_8bit;
         word src;
         switch (b) {
           case 0x80:
@@ -267,6 +266,7 @@ Cpu::ExitStatus Cpu::run() {
             is_8bit = false;
             break;
         }
+        void *dst = decode_rm(modrm, is_8bit);
 
         switch ((modrm >> 3) & 7) {   // group 1
           case 0: EXECUTE_OP2(add);
@@ -632,12 +632,15 @@ next_instr:
   }   // end of fetch opcode loop
 }
 
-void *Cpu::decode_rm(byte b) {
+void *Cpu::decode_rm(byte b, bool is_8bit) {
   byte modbits = (b >> 6) & 3;
   byte rmbits = b & 7;
 
   // mod = 0b11: register only
-  if (modbits == 3) return &ctx_.reg_gen[rmbits & 3].v[rmbits >> 2];
+  if (modbits == 3) {
+    if (is_8bit) return &ctx_.reg_gen[rmbits & 3].v[rmbits >> 2];
+    else return &ctx_.reg_all[rmbits];
+  }
 
   uint16_t base;
   switch (rmbits) {
@@ -670,9 +673,10 @@ void *Cpu::decode_rm(byte b) {
   }
 }
 
-void *Cpu::decode_reg(byte b) {
+void *Cpu::decode_reg(byte b, bool is_8bit) {
   byte regbits = (b >> 3) & 7;
-  return &ctx_.reg_gen[regbits & 3].v[regbits >> 2];
+  if (is_8bit) return &ctx_.reg_gen[regbits & 3].v[regbits >> 2];
+  else return &ctx_.reg_all[regbits];
 }
 
 void Cpu::handle_interrupt(byte interrupt) {

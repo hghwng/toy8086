@@ -145,8 +145,8 @@ private:
     return tmp;
   }
 
-  void *decode_rm(byte b);
-  void *decode_reg(byte b);
+  void *decode_rm(byte b, bool is_8bit = true);
+  void *decode_reg(byte b, bool is_8bit = true);
 
   template<typename T> void op_add(T &dst, T &src);
   template<typename T> void op_adc(T &dst, T &src);
