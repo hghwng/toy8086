@@ -536,12 +536,19 @@ Cpu::ExitStatus Cpu::run() {
         op_pop(ctx_.seg.cs);
         goto next_instr;
 
-      case 0xcc:    // int 3
-        dump_status();
-        return kExitDebugInterrupt;
-      case 0xcd:    // int
-        handle_interrupt(fetch());
-        goto next_instr;
+      case 0xcc: case 0xcd: {
+        byte interrupt_no = 0x03;
+        if (b == 0xcd) {
+          interrupt_no = fetch();
+        }
+        if (interrupt_no == 0x03) {
+          dump_status();
+          return kExitDebugInterrupt;
+        } else {
+          handle_interrupt(interrupt_no);
+          goto next_instr;
+        }
+      }  // handle interrupt
 
       case 0xe4:    // in AL, Ib
         op_in(ctx_.a.l, fetch());
