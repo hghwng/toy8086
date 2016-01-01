@@ -712,7 +712,7 @@ Cpu::ExitStatus Cpu::handle_interrupt(byte interrupt) {
           ctx_.a.l = (char) getonechar(false);
           break;
         case 0x09: { // print string terminated by '$' to stdout
-          for (byte dx = ctx_.d.x;; dx++) {
+          for (word dx = ctx_.d.x; ; dx++) {
             char b = *mem_.get<char>(ctx_.seg.get(), dx);
             if (b != '$') {
               printf("%c", b);

@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
   Cpu cpu;
   if (!load_binary(argv[1], cpu)) {
-    fprintf(stderr, "Failed to load file %s: %m\n", argv[1]);
+    fprintf(stderr, "Failed to load file %s.\n", argv[1]);
     return 2;
   }
 
