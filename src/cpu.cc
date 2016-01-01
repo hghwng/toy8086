@@ -694,16 +694,25 @@ void Cpu::handle_interrupt(byte interrupt) {
     case 0x21: {  // DOS interrupt
       switch (ctx_.a.h) {
         case 0x01:  // get char from stdin
-          ctx_.a.l = (char)getonechar();
+          ctx_.a.l = (char) getonechar(true);
           break;
         case 0x02:  // print char to stdout
           printf("%c", ctx_.d.l);
           ctx_.a.l = ctx_.d.l;  // side effect
           break;
+        case 0x08:  // get char from stdin without echo
+          ctx_.a.l = (char) getonechar(false);
+          break;
         case 0x09: { // print string terminated by '$' to stdout
           // XXX
         }
+        default:
+          fprintf(stderr, "Unknown DOS interrupt: %x. \n", ctx_.a.h);
+          break;
       }
+      break;
+    default:
+      fprintf(stderr, "Unknown interrupt: %x. \n", interrupt);
     }
   }
 }
