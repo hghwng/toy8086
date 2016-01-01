@@ -594,7 +594,6 @@ Cpu::ExitStatus Cpu::run() {
       case 0x9a:    // call Ap
         op_push(ctx_.seg.cs);
         op_push(ctx_.ip);
-        goto next_instr;
       case 0xea:    // jmp Ap
         ctx_.seg.cs = fetchw();
         ctx_.ip = fetchw();
