@@ -552,8 +552,9 @@ Cpu::ExitStatus Cpu::run() {
           dump_status();
           return kExitDebugInterrupt;
         } else {
-          handle_interrupt(interrupt_no);
-          goto next_instr;
+          Cpu::ExitStatus ret = handle_interrupt(interrupt_no);
+          if (ret == kContinue) goto next_instr;
+          else return ret;
         }
       }  // handle interrupt
 
@@ -696,7 +697,7 @@ void *Cpu::decode_reg(byte b, bool is_8bit) {
   else return &ctx_.reg_all[regbits];
 }
 
-void Cpu::handle_interrupt(byte interrupt) {
+Cpu::ExitStatus Cpu::handle_interrupt(byte interrupt) {
   switch (interrupt) {
     case 0x21: {  // DOS interrupt
       switch (ctx_.a.h) {
@@ -711,8 +712,18 @@ void Cpu::handle_interrupt(byte interrupt) {
           ctx_.a.l = (char) getonechar(false);
           break;
         case 0x09: { // print string terminated by '$' to stdout
-          // XXX
+          for (byte dx = ctx_.d.x;; dx++) {
+            char b = *mem_.get<char>(ctx_.seg.get(), dx);
+            if (b != '$') {
+              printf("%c", b);
+            } else {
+              break;
+            }
+          }
+          break;
         }
+        case 0x4c:
+          return kExitHalt;
         default:
           fprintf(stderr, "Unknown DOS interrupt: %x. \n", ctx_.a.h);
           break;
@@ -722,4 +733,5 @@ void Cpu::handle_interrupt(byte interrupt) {
       fprintf(stderr, "Unknown interrupt: %x. \n", interrupt);
     }
   }
+  return kContinue;
 }

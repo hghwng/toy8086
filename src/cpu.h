@@ -118,6 +118,7 @@ public:
     kExitDebugInterrupt,
     kExitInvalidOpcode,
     kExitInvalidInstruction,
+    kContinue
   };
 
   Memory mem_;
@@ -183,5 +184,5 @@ private:
   template<typename D, typename S> void op_in(D &dst, S src);
   template<typename D, typename S> void op_out(D dst, S &src);
 
-  void handle_interrupt(byte interrupt);
+  Cpu::ExitStatus handle_interrupt(byte interrupt);
 };

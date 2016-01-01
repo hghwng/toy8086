@@ -91,6 +91,8 @@ int main(int argc, char **argv) {
     case Cpu::kExitInvalidInstruction:
       printf("Program exited because of invaild instruction.\n");
       break;
+    case Cpu::kContinue:
+      break;
   }
 
   return 0;
