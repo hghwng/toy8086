@@ -594,21 +594,30 @@ Cpu::ExitStatus Cpu::run() {
         goto next_instr;
       }
 
-      case 0xe8:    // call Jv
-        op_push(ctx_.ip);
-      case 0xe9:    // jmp Jv
-        ctx_.ip += fetchw();
+      case 0xe8: case 0xe9: {  // call Jv, jmp Jv
+        int16_t offset = fetchw();
+        if (b == 0xe8) {  // call
+          op_push(ctx_.ip);
+        }
+        ctx_.ip += offset;
         goto next_instr;
-      case 0x9a:    // call Ap
-        op_push(ctx_.seg.cs);
-        op_push(ctx_.ip);
-      case 0xea:    // jmp Ap
-        ctx_.seg.cs = fetchw();
-        ctx_.ip = fetchw();
+      }
+      case 0x9a: case 0xea: {  // call Ap, jmp Ap
+        word new_ip = fetchw();
+        word new_cs = fetchw();
+        if (b == 0x9a) {  // call
+          op_push(ctx_.seg.cs);
+          op_push(ctx_.ip);
+        }
+        ctx_.seg.cs = new_cs;
+        ctx_.ip = new_ip;
         goto next_instr;
-      case 0xeb:    // jmp Jb
-        ctx_.ip += fetch();
+      }
+      case 0xeb: {             // jmp Jb
+        int8_t offset = fetch();
+        ctx_.ip += offset;
         goto next_instr;
+      }
 
       case 0x0e:    // push cs
         op_push(ctx_.seg.cs);
