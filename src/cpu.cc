@@ -259,7 +259,7 @@ template<typename D, typename S> void Cpu::op_out(D dst, S &src) {
 
 void Cpu::dump_status() {
   fprintf(stderr, "AX = %04X CX = %04X DX = %04X BX = %04X\n",
-          ctx_.a.x, ctx_.b.x, ctx_.c.x, ctx_.d.x);
+          ctx_.a.x, ctx_.c.x, ctx_.d.x, ctx_.b.x);
   fprintf(stderr, "SP = %04X BP = %04X SI = %04X DI = %04X IP = %04X\n",
           ctx_.sp, ctx_.bp, ctx_.si, ctx_.di, ctx_.ip);
   fprintf(stderr, "CS = %04X SS = %04X DS = %04X ES = %04X FS = %04X GS = %04X\n",
@@ -394,16 +394,16 @@ Cpu::ExitStatus Cpu::run() {
             is_8bit = true;
           case 1:   // Ev Gv
             tmp = fetch();
-            dst = decode_rm(tmp);
-            src = decode_reg(tmp);
+            dst = decode_rm(tmp, is_8bit);
+            src = decode_reg(tmp, is_8bit);
             break;
 
           case 2:   // Gb Eb
             is_8bit = true;
           case 3:   // Gv Ev
             tmp = fetch();
-            src = decode_rm(tmp);
-            dst = decode_reg(tmp);
+            src = decode_rm(tmp, is_8bit);
+            dst = decode_reg(tmp, is_8bit);
             break;
 
           case 4:   // AL Ib
