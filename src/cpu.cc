@@ -338,9 +338,9 @@ Cpu::ExitStatus Cpu::run() {
       case 0xd0: case 0xd1: case 0xd2: case 0xd3: {   // group 2
         byte modrm = fetch();
         word one = 1;
-        void *dst = decode_rm(modrm);
         void *src = b < 0xd2 ? to_ptr(one) : to_ptr(ctx_.c.l);
         bool is_8bit = (b & 1) == 0;
+        void *dst = decode_rm(modrm, is_8bit);
 
         switch ((modrm >> 3) & 7) {
           case 0: EXECUTE_OP2(rol);
@@ -441,7 +441,7 @@ Cpu::ExitStatus Cpu::run() {
 
       case 0x8c: case 0x8e: {   // mov, segment <-> modrm
         byte modrm = fetch();
-        word &reg = to_word(decode_rm(modrm));
+        word &reg = to_word(decode_rm(modrm, false));
         word seg_id = (b >> 3) & 7;
         if (seg_id >= Segment::kSegMax) return kExitInvalidInstruction;
 
@@ -453,13 +453,13 @@ Cpu::ExitStatus Cpu::run() {
 
       case 0x8d: {   // lea Gv M
         byte modrm = fetch();
-        word &dst = to_word(decode_reg(fetch(), modrm));
+        word &dst = to_word(decode_reg(modrm, true));
         dst = (byte *)(decode_rm(modrm)) - mem_.get<byte>(ctx_.seg.get(), 0);
         goto next_instr;
       }
 
       case 0xc6: case 0xc7: {   // mov
-        void *ptr = decode_rm(fetch());
+        void *ptr = decode_rm(fetch(), b & 0x01);
         if (b == 0xc6)  to_byte(ptr) = fetch();
         else            to_word(ptr) = fetchw();
         goto next_instr;
