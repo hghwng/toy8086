@@ -442,7 +442,7 @@ Cpu::ExitStatus Cpu::run() {
       case 0x8c: case 0x8e: {   // mov, segment <-> modrm
         byte modrm = fetch();
         word &reg = to_word(decode_rm(modrm, false));
-        word seg_id = (b >> 3) & 7;
+        word seg_id = (modrm >> 3) & 7;
         if (seg_id >= Segment::kSegMax) return kExitInvalidInstruction;
 
         word &seg = ctx_.seg.reg_seg[seg_id];
