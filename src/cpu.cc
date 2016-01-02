@@ -62,6 +62,7 @@ inline void Cpu::op_sbb(T &dst, T &src) {
 template<typename T>
 inline void Cpu::op_and(T &dst, T &src) {
   dst &= src;
+  fprintf(stderr, "& dst %x, src %x\n", dst, src);
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }
@@ -69,6 +70,7 @@ inline void Cpu::op_and(T &dst, T &src) {
 template<typename T>
 inline void Cpu::op_or(T &dst, T &src) {
   dst |= src;
+  fprintf(stderr, "| dst %x, src %x\n", dst, src);
   ctx_.flag.c = ctx_.flag.o = 0;
   ctx_.flag.set_szp(dst);
 }

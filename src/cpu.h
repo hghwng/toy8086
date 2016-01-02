@@ -73,6 +73,7 @@ struct Segment {
 
   Segment() {
     reset();
+    memset(reg_seg, 0, sizeof(reg_seg));
   }
 };  // Segment
 
@@ -126,6 +127,10 @@ public:
 
   void dump_status();
   ExitStatus run();
+
+  Cpu() {
+    memset(&ctx_.reg_all, 0, sizeof(ctx_.reg_all));
+  }
 
 private:
   struct {
