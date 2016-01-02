@@ -166,19 +166,71 @@ inline void Cpu::op_imul(word imm) {
 }
 
 inline void Cpu::op_div(byte imm) {
-  // XXX
+  if (imm == 0) {
+    fprintf(stderr, "Division by zero.\n");
+    return;
+  }
+  word divisor = ctx_.a.x;
+  word result = divisor / imm;
+  if (result & 0xff00) {
+    fprintf(stderr, "Division result over limit.\n");
+    return;
+  } else {
+    ctx_.a.l = result & 0xff;
+    ctx_.a.h = divisor % imm;
+  }
+  // FIXME: exception when division by zero
 }
 
 inline void Cpu::op_div(word imm) {
-  // XXX
+  if (imm == 0) {
+    fprintf(stderr, "Division by zero.\n");
+    return;
+  }
+  dword divisor = (ctx_.d.x << 16) | ctx_.a.x;
+  dword result = divisor / imm;
+  if (result & 0xffff0000) {
+    fprintf(stderr, "Division result over limit.\n");
+    return;
+  } else {
+    ctx_.a.x = result & 0xffff;
+    ctx_.d.x = divisor % imm;
+  }
+  // FIXME: exception when division by zero
 }
 
 inline void Cpu::op_idiv(byte imm) {
-  // XXX
+  if (imm == 0) {
+    fprintf(stderr, "Division by zero.\n");
+    return;
+  }
+  int16_t divisor = ctx_.a.x;
+  int16_t result = divisor / (int8_t) imm;
+  if (result < INT8_MIN || result > INT8_MAX) {
+    fprintf(stderr, "Division result over limit.\n");
+    return;
+  } else {
+    ctx_.a.l = (int8_t) result;
+    ctx_.a.h = (int8_t) (divisor % (int8_t) imm);
+  }
+  // FIXME: exception when division by zero
 }
 
 inline void Cpu::op_idiv(word imm) {
-  // XXX
+  if (imm == 0) {
+    fprintf(stderr, "Division by zero.\n");
+    return;
+  }
+  int32_t divisor = (int32_t) ((ctx_.d.x << 16) | ctx_.a.x);
+  int32_t result = divisor / (int16_t) imm;
+  if (result < INT16_MIN || result > INT16_MAX) {
+    fprintf(stderr, "Division result over limit.\n");
+    return;
+  } else {
+    ctx_.a.x = (int16_t) result;
+    ctx_.d.x = (int16_t) (divisor % (int16_t) imm);
+  }
+  // FIXME: exception when division by zero
 }
 
 inline void Cpu::op_push(word data) {
@@ -303,8 +355,8 @@ Cpu::ExitStatus Cpu::run() {
 
       case 0xf6: case 0xf7: {   // group 3a / 3b
         byte modrm = fetch();
-        void *dst = decode_rm(modrm);
         bool is_8bit = b == 0xf6;
+        void *dst = decode_rm(modrm, is_8bit);
 
         switch ((modrm >> 3) & 7) {
           case 0: {
