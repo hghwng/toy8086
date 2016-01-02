@@ -51,7 +51,7 @@ struct Segment {
 
   union {
     struct {
-      word cs, ss, ds, es, fs, gs;
+      word es, cs, ss, ds, fs, gs;
     };
     word reg_seg[kSegMax];
   };
