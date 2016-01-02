@@ -823,8 +823,9 @@ Cpu::ExitStatus Cpu::handle_interrupt(byte interrupt) {
           struct tm *current_tm = localtime(&current_time);
           dword ticks = (current_tm->tm_hour * 3600 + current_tm->tm_min * 60
                          + current_tm->tm_sec) * 0x1800b0u / (24 * 60 * 60);
-          ctx_.c.x = ticks & 0xffff;
-          ctx_.d.x = ticks >> 16;
+          // result: CX:DX
+          ctx_.c.x = ticks >> 16;
+          ctx_.d.x = ticks & 0xffff;
           ctx_.a.l = 0;  // FIXME: add some static variables to make it right.
           if (player_.playing) {
 #ifdef TOY8086_WIN32
