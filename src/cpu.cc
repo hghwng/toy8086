@@ -453,7 +453,7 @@ Cpu::ExitStatus Cpu::run() {
 
       case 0x8d: {   // lea Gv M
         byte modrm = fetch();
-        word &dst = to_word(decode_reg(modrm, true));
+        word &dst = to_word(decode_reg(modrm, false));
         dst = (byte *)(decode_rm(modrm)) - mem_.get<byte>(ctx_.seg.get(), 0);
         goto next_instr;
       }
